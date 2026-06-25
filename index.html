@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>吉他開放把位和弦查詢</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #080808;
+      --muted: #5d5d5d;
+      --paper: #fbfbfa;
+      --panel: #ffffff;
+      --line: #dedbd3;
+      --accent: #7b4dff;
+      --accent-soft: #ece5ff;
+      --green: #1f7a5f;
+      --amber: #b05e00;
+      --shadow: 0 16px 42px rgba(0, 0, 0, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      border-top: 2px solid var(--accent);
+    }
+
+    button,
+    select {
+      font: inherit;
+    }
+
+    .page {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 42px 0 56px;
+    }
+
+    .brand-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 28px;
+      align-items: center;
+      padding-bottom: 26px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .brand-mark {
+      display: grid;
+      grid-template-columns: auto auto;
+      gap: 22px;
+      align-items: center;
+      justify-content: end;
+    }
+
+    .sun {
+      width: 112px;
+      aspect-ratio: 1;
+      background:
+        repeating-conic-gradient(from 0deg, var(--ink) 0deg 1.2deg, transparent 1.2deg 8.2deg);
+      border-radius: 50%;
+      mask: radial-gradient(circle, #000 0 7px, transparent 8px 34px, #000 35px);
+    }
+
+    .strings {
+      width: 142px;
+      height: 92px;
+      position: relative;
+    }
+
+    .strings::before,
+    .strings::after {
+      content: "";
+      position: absolute;
+      inset: 12px 0;
+      border: 1px solid var(--ink);
+      border-radius: 50%;
+    }
+
+    .strings::after {
+      inset: 23px 0;
+      box-shadow:
+        0 10px 0 -1px var(--paper),
+        0 10px 0 0 var(--ink),
+        0 20px 0 -1px var(--paper),
+        0 20px 0 0 var(--ink),
+        0 30px 0 -1px var(--paper),
+        0 30px 0 0 var(--ink);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(3.4rem, 10vw, 8.8rem);
+      line-height: 0.9;
+      letter-spacing: 0;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      margin: 16px 0 0;
+      max-width: 720px;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.8;
+    }
+
+    section {
+      padding: 34px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    h2 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      letter-spacing: 0;
+      line-height: 1;
+    }
+
+    .tag {
+      color: var(--green);
+      font-size: 0.9rem;
+      font-weight: 700;
+      border: 1px solid currentColor;
+      border-radius: 999px;
+      padding: 7px 11px;
+      white-space: nowrap;
+    }
+
+    .guide {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .guide-item {
+      min-height: 118px;
+      padding: 18px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+    }
+
+    .guide-item strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 1.05rem;
+    }
+
+    .guide-item span {
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 0.95rem;
+    }
+
+    .key-panel {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      box-shadow: var(--shadow);
+    }
+
+    .key-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .key-button {
+      width: 56px;
+      height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.35rem;
+      transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+    }
+
+    .key-button:hover {
+      transform: translateY(-1px);
+      border-color: var(--ink);
+    }
+
+    .key-button[aria-pressed="true"] {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: #fff;
+    }
+
+    .current-key {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      color: var(--muted);
+      min-width: 188px;
+      justify-content: flex-end;
+    }
+
+    .current-key strong {
+      color: var(--amber);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 2.2rem;
+      line-height: 1;
+    }
+
+    .result-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .result-title p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .chord-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(132px, 1fr));
+      gap: 14px;
+    }
+
+    .chord-card {
+      min-width: 0;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 10px 12px;
+      text-align: center;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.055);
+    }
+
+    .degree {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 42px;
+      height: 26px;
+      margin-bottom: 9px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #4420a5;
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .chord-name {
+      margin-top: 2px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.65rem;
+      line-height: 1.1;
+    }
+
+    .diagram {
+      width: 100%;
+      max-width: 148px;
+      margin: 0 auto;
+      display: block;
+    }
+
+    .note {
+      margin: 18px 0 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 0.94rem;
+    }
+
+    .footer {
+      padding-top: 26px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 1040px) {
+      .chord-grid {
+        grid-template-columns: repeat(4, minmax(132px, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page {
+        width: min(100% - 22px, 680px);
+        padding-top: 28px;
+      }
+
+      .brand-row {
+        grid-template-columns: 1fr;
+      }
+
+      .brand-mark {
+        justify-content: start;
+      }
+
+      .sun {
+        width: 82px;
+      }
+
+      .strings {
+        width: 110px;
+        height: 72px;
+      }
+
+      .section-head,
+      .result-title {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .guide {
+        grid-template-columns: 1fr;
+      }
+
+      .key-panel {
+        align-items: stretch;
+      }
+
+      .current-key {
+        justify-content: flex-start;
+      }
+
+      .chord-grid {
+        grid-template-columns: repeat(2, minmax(132px, 1fr));
+      }
+    }
+
+    @media (max-width: 420px) {
+      .chord-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .key-button {
+        width: 48px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="brand-row" aria-label="網站標題">
+      <div>
+        <h1>Guitarist<br>Inspire</h1>
+        <p class="subtitle">選擇調性後，快速查看初學者常用的大調基本和弦在吉他開放把位上的按法。</p>
+      </div>
+      <div class="brand-mark" aria-hidden="true">
+        <div class="sun"></div>
+        <div class="strings"></div>
+      </div>
+    </header>
+
+    <section aria-labelledby="guide-title">
+      <div class="section-head">
+        <h2 id="guide-title">使用方式</h2>
+        <span class="tag">One page chord finder</span>
+      </div>
+      <div class="guide">
+        <div class="guide-item">
+          <strong>1. 選調性</strong>
+          <span>從 C、D、E、F、G、A、B 中選一個大調。</span>
+        </div>
+        <div class="guide-item">
+          <strong>2. 看級數</strong>
+          <span>和弦依序顯示 I、ii、iii、IV、V、V7、vi，適合初學伴奏練習。</span>
+        </div>
+        <div class="guide-item">
+          <strong>3. 對照手指</strong>
+          <span>黑點中的數字代表左手手指，空心圈代表空弦，X 代表不彈。</span>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="key-title">
+      <div class="section-head">
+        <h2 id="key-title">選擇調性</h2>
+      </div>
+      <div class="key-panel">
+        <div class="key-buttons" role="group" aria-label="選擇大調調性"></div>
+        <div class="current-key">目前調性 <strong id="current-key">C</strong></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="chord-title">
+      <div class="result-title">
+        <h2 id="chord-title">C 調基本和弦</h2>
+        <p>由左到右練習，先慢慢確認每一條弦是否清楚發聲。</p>
+      </div>
+      <div class="chord-grid" id="chord-grid" aria-live="polite"></div>
+      <p class="note">這份表採用參考圖中常見的初學者版本，會以 V7 放在第六個位置，方便練習常見大調伴奏走向。</p>
+    </section>
+
+  </main>
+
+  <script>
+    const chordShapes = {
+      C: { frets: [-1, 3, 2, 0, 1, 0], fingers: [null, 3, 2, null, 1, null] },
+      D: { frets: [-1, -1, 0, 2, 3, 2], fingers: [null, null, null, 1, 3, 2] },
+      E: { frets: [0, 2, 2, 1, 0, 0], fingers: [null, 2, 3, 1, null, null] },
+      F: { frets: [1, 3, 3, 2, 1, 1], fingers: [1, 3, 4, 2, 1, 1], barres: [{ fret: 1, from: 0, to: 5, finger: 1 }] },
+      "F#": { frets: [2, 4, 4, 3, 2, 2], fingers: [1, 3, 4, 2, 1, 1], barres: [{ fret: 2, from: 0, to: 5, finger: 1 }] },
+      G: { frets: [3, 2, 0, 0, 0, 3], fingers: [2, 1, null, null, null, 3] },
+      A: { frets: [-1, 0, 2, 2, 2, 0], fingers: [null, null, 1, 2, 3, null] },
+      B: { frets: [-1, 2, 4, 4, 4, 2], fingers: [null, 1, 2, 3, 4, 1], barres: [{ fret: 2, from: 1, to: 5, finger: 1 }] },
+      Bb: { frets: [-1, 1, 3, 3, 3, 1], fingers: [null, 1, 2, 3, 4, 1], barres: [{ fret: 1, from: 1, to: 5, finger: 1 }] },
+      Dm: { frets: [-1, -1, 0, 2, 3, 1], fingers: [null, null, null, 2, 3, 1] },
+      Em: { frets: [0, 2, 2, 0, 0, 0], fingers: [null, 2, 3, null, null, null] },
+      "F#m": { frets: [2, 4, 4, 2, 2, 2], fingers: [1, 3, 4, 1, 1, 1], barres: [{ fret: 2, from: 0, to: 5, finger: 1 }] },
+      Gm: { frets: [3, 5, 5, 3, 3, 3], fingers: [1, 3, 4, 1, 1, 1], barres: [{ fret: 3, from: 0, to: 5, finger: 1 }] },
+      "G#m": { frets: [4, 6, 6, 4, 4, 4], fingers: [1, 3, 4, 1, 1, 1], barres: [{ fret: 4, from: 0, to: 5, finger: 1 }] },
+      Am: { frets: [-1, 0, 2, 2, 1, 0], fingers: [null, null, 2, 3, 1, null] },
+      Bm: { frets: [-1, 2, 4, 4, 3, 2], fingers: [null, 1, 3, 4, 2, 1], barres: [{ fret: 2, from: 1, to: 5, finger: 1 }] },
+      "C#m": { frets: [-1, 4, 6, 6, 5, 4], fingers: [null, 1, 3, 4, 2, 1], barres: [{ fret: 4, from: 1, to: 5, finger: 1 }] },
+      "D#m": { frets: [-1, 6, 8, 8, 7, 6], fingers: [null, 1, 3, 4, 2, 1], barres: [{ fret: 6, from: 1, to: 5, finger: 1 }] },
+      C7: { frets: [-1, 3, 2, 3, 1, 0], fingers: [null, 3, 2, 4, 1, null] },
+      D7: { frets: [-1, -1, 0, 2, 1, 2], fingers: [null, null, null, 2, 1, 3] },
+      E7: { frets: [0, 2, 0, 1, 0, 0], fingers: [null, 2, null, 1, null, null] },
+      "F#7": { frets: [2, 4, 2, 3, 2, 2], fingers: [1, 3, 1, 2, 1, 1], barres: [{ fret: 2, from: 0, to: 5, finger: 1 }] },
+      G7: { frets: [3, 2, 0, 0, 0, 1], fingers: [3, 2, null, null, null, 1] },
+      A7: { frets: [-1, 0, 2, 0, 2, 0], fingers: [null, null, 1, null, 2, null] },
+      B7: { frets: [-1, 2, 1, 2, 0, 2], fingers: [null, 2, 1, 3, null, 4] }
+    };
+
+    const keys = {
+      C: ["C", "Dm", "Em", "F", "G", "G7", "Am"],
+      D: ["D", "Em", "F#m", "G", "A", "A7", "Bm"],
+      E: ["E", "F#m", "G#m", "A", "B", "B7", "C#m"],
+      F: ["F", "Gm", "Am", "Bb", "C", "C7", "Dm"],
+      G: ["G", "Am", "Bm", "C", "D", "D7", "Em"],
+      A: ["A", "Bm", "C#m", "D", "E", "E7", "F#m"],
+      B: ["B", "C#m", "D#m", "E", "F#", "F#7", "G#m"]
+    };
+
+    const degrees = ["I", "ii", "iii", "IV", "V", "V7", "vi"];
+    const order = ["C", "D", "E", "F", "G", "A", "B"];
+    const keyButtons = document.querySelector(".key-buttons");
+    const chordGrid = document.getElementById("chord-grid");
+    const currentKey = document.getElementById("current-key");
+    const chordTitle = document.getElementById("chord-title");
+
+    function baseFret(frets) {
+      const positive = frets.filter((fret) => fret > 0);
+      if (!positive.length) return 1;
+      const minimum = Math.min(...positive);
+      return minimum > 1 ? minimum : 1;
+    }
+
+    function stringX(index) {
+      return 28 + index * 18;
+    }
+
+    function fretY(fret, base) {
+      return 38 + (fret - base + 0.5) * 18;
+    }
+
+    function diagramSvg(name, shape) {
+      const base = baseFret(shape.frets);
+      const gridTop = 38;
+      const gridBottom = 128;
+      const gridLeft = 28;
+      const gridRight = 118;
+      const lines = [];
+
+      for (let i = 0; i < 6; i += 1) {
+        const x = stringX(i);
+        lines.push(`<line x1="${x}" y1="${gridTop}" x2="${x}" y2="${gridBottom}" stroke="#080808" stroke-width="${i === 0 || i === 5 ? 1.8 : 1.4}"/>`);
+      }
+
+      for (let i = 0; i <= 5; i += 1) {
+        const y = gridTop + i * 18;
+        const width = i === 0 && base === 1 ? 5 : 1.6;
+        lines.push(`<line x1="${gridLeft}" y1="${y}" x2="${gridRight}" y2="${y}" stroke="#080808" stroke-width="${width}" stroke-linecap="square"/>`);
+      }
+
+      if (base > 1) {
+        lines.push(`<text x="9" y="53" font-size="12" font-family="Arial, sans-serif" fill="#080808">${base} fr</text>`);
+      }
+
+      shape.frets.forEach((fret, index) => {
+        const x = stringX(index);
+        if (fret === 0) {
+          lines.push(`<circle cx="${x}" cy="22" r="5.8" fill="#fff" stroke="#080808" stroke-width="1.4"/>`);
+        }
+        if (fret < 0) {
+          lines.push(`<text x="${x}" y="27" text-anchor="middle" font-size="15" font-family="Arial, sans-serif" fill="#080808">x</text>`);
+        }
+      });
+
+      (shape.barres || []).forEach((barre) => {
+        const x1 = stringX(barre.from);
+        const x2 = stringX(barre.to);
+        const y = fretY(barre.fret, base);
+        lines.push(`<rect x="${x1 - 8}" y="${y - 8}" width="${x2 - x1 + 16}" height="16" rx="8" fill="#080808"/>`);
+        lines.push(`<text x="${x1}" y="${y + 4}" text-anchor="middle" font-size="10" font-weight="700" font-family="Arial, sans-serif" fill="#fff">${barre.finger}</text>`);
+        if (x2 - x1 > 28) {
+          lines.push(`<text x="${x2}" y="${y + 4}" text-anchor="middle" font-size="10" font-weight="700" font-family="Arial, sans-serif" fill="#fff">${barre.finger}</text>`);
+        }
+      });
+
+      shape.frets.forEach((fret, index) => {
+        if (fret <= 0) return;
+        const isBarred = (shape.barres || []).some((barre) => barre.fret === fret && index >= barre.from && index <= barre.to);
+        if (isBarred) return;
+        const x = stringX(index);
+        const y = fretY(fret, base);
+        const finger = shape.fingers[index] || "";
+        lines.push(`<circle cx="${x}" cy="${y}" r="8" fill="#080808"/>`);
+        lines.push(`<text x="${x}" y="${y + 4}" text-anchor="middle" font-size="10" font-weight="700" font-family="Arial, sans-serif" fill="#fff">${finger}</text>`);
+      });
+
+      return `
+        <svg class="diagram" viewBox="0 0 146 152" role="img" aria-label="${name} 和弦按法圖">
+          ${lines.join("")}
+        </svg>
+      `;
+    }
+
+    function render(selectedKey) {
+      currentKey.textContent = selectedKey;
+      chordTitle.textContent = `${selectedKey} 調基本和弦`;
+      chordGrid.innerHTML = keys[selectedKey].map((name, index) => {
+        const shape = chordShapes[name];
+        return `
+          <article class="chord-card">
+            <div class="degree">${degrees[index]}</div>
+            ${diagramSvg(name, shape)}
+            <div class="chord-name">${name}</div>
+          </article>
+        `;
+      }).join("");
+
+      document.querySelectorAll(".key-button").forEach((button) => {
+        button.setAttribute("aria-pressed", String(button.dataset.key === selectedKey));
+      });
+    }
+
+    order.forEach((key) => {
+      const button = document.createElement("button");
+      button.className = "key-button";
+      button.type = "button";
+      button.dataset.key = key;
+      button.textContent = key;
+      button.setAttribute("aria-pressed", "false");
+      button.addEventListener("click", () => render(key));
+      keyButtons.appendChild(button);
+    });
+
+    render("C");
+  </script>
+</body>
+</html>
